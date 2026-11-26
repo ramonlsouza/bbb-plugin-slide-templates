@@ -1,8 +1,11 @@
 // Templates are described once, in page units with the origin at the top left, and drawn twice:
 // into the PDF that is inserted (pdf.ts) and into the thumbnail of the panel (thumbnail.tsx).
 
+// A grid line, a stronger grid line, or an axis of a coordinate plane.
+export type LineWeight = 'normal' | 'bold' | 'axis';
+
 export type Shape =
-  | { kind: 'line'; x1: number; y1: number; x2: number; y2: number; weight: 'normal' | 'bold' }
+  | { kind: 'line'; x1: number; y1: number; x2: number; y2: number; weight: LineWeight }
   | { kind: 'dot'; cx: number; cy: number };
 
 export interface SlideTemplate {
@@ -14,7 +17,7 @@ export interface SlideTemplate {
 // The radius of a dot on the page, in page units.
 export const DOT_RADIUS = 1.5;
 
-const line = (x1: number, y1: number, x2: number, y2: number, weight: 'normal' | 'bold' = 'normal'): Shape => ({
+const line = (x1: number, y1: number, x2: number, y2: number, weight: LineWeight = 'normal'): Shape => ({
   kind: 'line', x1, y1, x2, y2, weight,
 });
 
@@ -63,9 +66,30 @@ const graph = (w: number, h: number): Shape[] => {
   ];
 };
 
+// A square grid centred on the page with an x and a y axis through the centre, without numbers. The axes come
+// last so they are drawn over the grid line under them, in the thumbnail as in the PDF.
+const coordinate = (w: number, h: number): Shape[] => {
+  const s = h / 20;
+  const cx = w / 2;
+  const cy = h / 2;
+  // Grid positions from the centre outward, both ways, inside the page.
+  const around = (c: number, max: number): number[] => {
+    const out: number[] = [];
+    for (let v = c - Math.floor(c / s) * s; v <= max + 1e-6 && out.length < 1000; v += s) out.push(v);
+    return out;
+  };
+  return [
+    ...around(cx, w).map((x) => line(x, 0, x, h)),
+    ...around(cy, h).map((y) => line(0, y, w, y)),
+    line(cx, 0, cx, h, 'axis'),
+    line(0, cy, w, cy, 'axis'),
+  ];
+};
+
 export const TEMPLATES: SlideTemplate[] = [
   { id: 'lined', label: 'Lined', draw: lined },
   { id: 'grid', label: 'Grid', draw: grid },
   { id: 'dots', label: 'Dots', draw: dots },
   { id: 'graph', label: 'Graph paper', draw: graph },
+  { id: 'coordinate', label: 'Coordinate plane', draw: coordinate },
 ];

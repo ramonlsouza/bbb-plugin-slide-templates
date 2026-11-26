@@ -1,13 +1,13 @@
 import { RefObject, useEffect, useLayoutEffect, useState } from 'react';
 import { PANEL_WIDTH_REM } from './styles';
 
-// Opens the panel as a drop-up of the Templates button, as the core "Media Sharing" panel opens from its
+// Opens the panel as a drop-up of the Insert slide button, as the core "Media Sharing" panel opens from its
 // button: above it, left edges aligned, kept inside the window, at most 37rem tall. The floating window of the
 // plugin SDK places a window only through dragging, so the window is fixed and the panel places itself.
 
 export const BUTTON_SELECTOR = '[data-test="slideTemplatesButton"]';
 
-// Where the panel went before it was a drop-up, used when the Templates button is not on the page.
+// Where the panel went before it was a drop-up, used when the Insert slide button is not on the page.
 const FALLBACK = { top: 80, left: 420 };
 
 export interface DropUpPosition {
@@ -58,7 +58,7 @@ export function useDropUpPosition(): DropUpPosition {
   return position;
 }
 
-// Closes the panel on Escape and on a press outside it. A press on the Templates button is left to the button,
+// Closes the panel on Escape and on a press outside it. A press on the Insert slide button is left to the button,
 // which toggles the panel; closing here too would close it and open it again.
 export function useCloseOnOutside(panel: RefObject<HTMLElement>, onClose: () => void): void {
   useEffect(() => {

@@ -1,6 +1,6 @@
 {
   "requiredSdkVersion": "^1.0.0-beta.3",
   "name": "SlideTemplatesPlugin",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "javascriptEntrypointUrl": "SlideTemplatesPlugin.js"
 }

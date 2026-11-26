@@ -114,7 +114,7 @@ function SlideTemplatesPlugin({ pluginUuid }: { pluginUuid: string }): React.Rea
   useEffect(() => {
     pluginApi.setPresentationToolbarItems(presenter ? [
       new PresentationToolbarButton({
-        label: 'Templates',
+        label: 'Insert slide',
         tooltip: 'Insert a page after the current slide',
         dataTest: 'slideTemplatesButton',
         onClick: () => setOpen((o) => !o),
@@ -129,7 +129,7 @@ function SlideTemplatesPlugin({ pluginUuid }: { pluginUuid: string }): React.Rea
     }
     pluginApi.setFloatingWindows([
       new FloatingWindow({
-        // Not movable: the panel is a drop-up of the Templates button and places itself (see useDropUpPosition).
+        // Not movable: the panel is a drop-up of the Insert slide button and places itself (see useDropUpPosition).
         top: 0,
         left: 0,
         movable: false,
@@ -146,14 +146,6 @@ function SlideTemplatesPlugin({ pluginUuid }: { pluginUuid: string }): React.Rea
             >
               <PanelTile dataTest="slideTemplate-blank" label="Blank page" disabled={pending} onClick={insertBlank}>
                 <BlankThumbnail width={size.width} height={size.height} />
-              </PanelTile>
-              <PanelTile
-                dataTest="slideTemplate-file"
-                label="From a file..."
-                disabled={pending}
-                onClick={() => fileInput.current?.click()}
-              >
-                <FileThumbnail width={size.width} height={size.height} />
               </PanelTile>
               <PanelTile
                 dataTest="slideTemplate-duplicate"
@@ -174,6 +166,14 @@ function SlideTemplatesPlugin({ pluginUuid }: { pluginUuid: string }): React.Rea
                   <Thumbnail template={t} width={size.width} height={size.height} />
                 </PanelTile>
               ))}
+              <PanelTile
+                dataTest="slideTemplate-file"
+                label="From a file..."
+                disabled={pending}
+                onClick={() => fileInput.current?.click()}
+              >
+                <FileThumbnail width={size.width} height={size.height} />
+              </PanelTile>
             </DropUpPanel>,
           );
           return root;

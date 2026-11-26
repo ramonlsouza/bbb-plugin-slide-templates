@@ -1,18 +1,20 @@
-import { DOT_RADIUS, Shape } from './templates';
+import { DOT_RADIUS, LineWeight, Shape } from './templates';
 
 // A one-page vector PDF, laid out like the blank page the server makes (BlankPagePdf.java):
 // a white page, then the shapes of the template. PDF y grows upwards, the shapes' y downwards.
 const n = (v: number) => (Math.round(v * 100) / 100).toString();
 
-const STROKE: Record<'normal' | 'bold', string> = {
+const STROKE: Record<LineWeight, string> = {
   normal: '0.75 w 0.7 G',
   bold: '1.25 w 0.55 G',
+  axis: '2 w 0.2 G',
 };
 
 export function contentStream(width: number, height: number, shapes: Shape[]): string {
   const y = (v: number) => n(height - v);
   const out = [`1 g 0 0 ${n(width)} ${n(height)} re f`];
-  (['normal', 'bold'] as const).forEach((weight) => {
+  // Axes last, over the grid line under them.
+  (['normal', 'bold', 'axis'] as const).forEach((weight) => {
     const lines = shapes.filter((s) => s.kind === 'line' && s.weight === weight);
     if (!lines.length) return;
     out.push(STROKE[weight]);

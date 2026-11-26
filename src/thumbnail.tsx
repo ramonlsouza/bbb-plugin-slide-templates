@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { DOT_RADIUS, SlideTemplate } from './templates';
+import { DOT_RADIUS, LineWeight, SlideTemplate } from './templates';
 
 export const TILE_WIDTH = 140;
 
@@ -59,6 +59,12 @@ export function DuplicateThumbnail({ width, height }: { width: number; height: n
   );
 }
 
+const LINE_STROKE: Record<LineWeight, { color: string; width: number }> = {
+  normal: { color: '#888', width: 1 },
+  bold: { color: '#555', width: 1.5 },
+  axis: { color: '#222', width: 2 },
+};
+
 // The thumbnail draws the same shapes as the PDF, in page units, but with strokes and dots of a fixed
 // size on screen: at 140 px a page stroke of 0.75 pt would be about 0.07 px and the tile would look blank.
 function Thumbnail({ template, width, height }: { template: SlideTemplate; width: number; height: number }) {
@@ -74,8 +80,8 @@ function Thumbnail({ template, width, height }: { template: SlideTemplate; width
           y1={s.y1}
           x2={s.x2}
           y2={s.y2}
-          stroke={s.weight === 'bold' ? '#555' : '#888'}
-          strokeWidth={s.weight === 'bold' ? 1.5 : 1}
+          stroke={LINE_STROKE[s.weight].color}
+          strokeWidth={LINE_STROKE[s.weight].width}
           vectorEffect="non-scaling-stroke"
         />
       ) : (

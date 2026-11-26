@@ -12,7 +12,7 @@ interface DropUpPanelProps {
   children: React.ReactNode;
 }
 
-// The panel of the Templates button, drawn like the core "Media Sharing" drop-up.
+// The panel of the Insert slide button, drawn like the core "Media Sharing" drop-up.
 function DropUpPanel({ title, onClose, children }: DropUpPanelProps): React.ReactElement {
   const panel = useRef<HTMLDivElement>(null);
   const { maxHeight, ...place } = useDropUpPosition();

@@ -10,7 +10,7 @@ export function ThumbnailFrame({ width, height, children }: { width: number; hei
       viewBox={`0 0 ${width} ${height}`}
       width={TILE_WIDTH}
       height={Math.round((TILE_WIDTH * height) / width)}
-      style={{ display: 'block', background: '#fff', border: '1px solid #ccc' }}
+      style={{ display: 'block', background: '#fff', border: '1px solid var(--apps-gallery-outline, #DCE4EC)' }}
       aria-hidden="true"
       data-test="slideTemplateThumbnail"
     >

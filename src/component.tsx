@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import * as ReactDOM from 'react-dom/client';
 import { BbbPluginSdk, FloatingWindow, PresentationToolbarButton } from 'bigbluebutton-html-plugin-sdk';
 import { TEMPLATES, SlideTemplate } from './templates';
@@ -7,6 +7,7 @@ import { pdfBytes } from './pdf';
 import Thumbnail, { BlankThumbnail, FileThumbnail } from './thumbnail';
 import { useInsertNavigation } from './useInsertNavigation';
 import { useHideCoreInsertButton } from './hideCoreInsertButton';
+import DropUpPanel, { PanelTile } from './panel';
 
 interface CurrentPageSize {
   pres_page_curr: { width: number; height: number; num: number }[];
@@ -24,19 +25,11 @@ const acceptedFileTypes = (): string => {
   return accepted.length ? accepted.join(',') : '.pdf';
 };
 
-const tileStyle = (disabled: boolean): React.CSSProperties => ({
-  border: '1px solid #ddd',
-  borderRadius: 4,
-  padding: 6,
-  background: '#f7f7f7',
-  cursor: disabled ? 'default' : 'pointer',
-  opacity: disabled ? 0.5 : 1,
-});
-
 function SlideTemplatesPlugin({ pluginUuid }: { pluginUuid: string }): React.ReactElement {
   BbbPluginSdk.initialize(pluginUuid);
   const pluginApi = BbbPluginSdk.getPluginApi(pluginUuid);
   const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const { data: currentUser } = pluginApi.useCurrentUser();
@@ -110,69 +103,44 @@ function SlideTemplatesPlugin({ pluginUuid }: { pluginUuid: string }): React.Rea
     }
     pluginApi.setFloatingWindows([
       new FloatingWindow({
-        top: 80,
-        left: 420,
-        movable: true,
-        backgroundColor: '#ffffff',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+        // Not movable: the panel is a drop-up of the Templates button and places itself (see useDropUpPosition).
+        top: 0,
+        left: 0,
+        movable: false,
+        backgroundColor: 'transparent',
+        boxShadow: 'none',
         zIndex: 1000,
         dataTest: 'slideTemplatesWindow',
         contentFunction: (element: HTMLElement) => {
           const root = ReactDOM.createRoot(element);
           root.render(
-            <div style={{ padding: 12, fontFamily: 'Source Sans Pro, Arial, sans-serif', color: '#222' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <strong data-test="slideTemplatesTitle">
-                  {pending ? 'Inserting...' : `Insert a page after slide ${pageNum}`}
-                </strong>
-                <button type="button" aria-label="Close" data-test="slideTemplatesClose" onClick={() => setOpen(false)}>x</button>
-              </div>
-              <div
-                data-test="slideTemplatesScroll"
-                style={{
-                  maxHeight: 'calc(100vh - 160px)', overflowY: 'auto',
-                }}
+            <DropUpPanel
+              title={pending ? 'Inserting...' : `Insert a page after slide ${pageNum}`}
+              onClose={close}
+            >
+              <PanelTile dataTest="slideTemplate-blank" label="Blank page" disabled={pending} onClick={insertBlank}>
+                <BlankThumbnail width={size.width} height={size.height} />
+              </PanelTile>
+              <PanelTile
+                dataTest="slideTemplate-file"
+                label="From a file..."
+                disabled={pending}
+                onClick={() => fileInput.current?.click()}
               >
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, auto)', gap: 12 }}>
-                  <button
-                    type="button"
-                    data-test="slideTemplate-blank"
-                    aria-label="Blank page"
-                    disabled={pending}
-                    onClick={insertBlank}
-                    style={tileStyle(pending)}
-                  >
-                    <BlankThumbnail width={size.width} height={size.height} />
-                    <div style={{ marginTop: 4, fontSize: 13 }}>Blank page</div>
-                  </button>
-                  <button
-                    type="button"
-                    data-test="slideTemplate-file"
-                    aria-label="From a file..."
-                    disabled={pending}
-                    onClick={() => fileInput.current?.click()}
-                    style={tileStyle(pending)}
-                  >
-                    <FileThumbnail width={size.width} height={size.height} />
-                    <div style={{ marginTop: 4, fontSize: 13 }}>From a file...</div>
-                  </button>
-                  {TEMPLATES.map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      data-test={`slideTemplate-${t.id}`}
-                      aria-label={t.label}
-                      disabled={pending}
-                      onClick={() => insertTemplate(t)}
-                      style={tileStyle(pending)}
-                    >
-                      <Thumbnail template={t} width={size.width} height={size.height} />
-                      <div style={{ marginTop: 4, fontSize: 13 }}>{t.label}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>,
+                <FileThumbnail width={size.width} height={size.height} />
+              </PanelTile>
+              {TEMPLATES.map((t) => (
+                <PanelTile
+                  key={t.id}
+                  dataTest={`slideTemplate-${t.id}`}
+                  label={t.label}
+                  disabled={pending}
+                  onClick={() => insertTemplate(t)}
+                >
+                  <Thumbnail template={t} width={size.width} height={size.height} />
+                </PanelTile>
+              ))}
+            </DropUpPanel>,
           );
           return root;
         },

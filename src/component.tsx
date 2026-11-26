@@ -1,10 +1,13 @@
 import * as React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as ReactDOM from 'react-dom/client';
-import { BbbPluginSdk, FloatingWindow, PresentationToolbarButton } from 'bigbluebutton-html-plugin-sdk';
+import {
+  BbbPluginSdk, FloatingWindow, NotificationTypeUiCommand, PresentationToolbarButton,
+} from 'bigbluebutton-html-plugin-sdk';
 import { TEMPLATES, SlideTemplate } from './templates';
 import { pdfBytes } from './pdf';
-import Thumbnail, { BlankThumbnail, FileThumbnail } from './thumbnail';
+import Thumbnail, { BlankThumbnail, DuplicateThumbnail, FileThumbnail } from './thumbnail';
+import { duplicatePagePdf } from './duplicate';
 import { useInsertNavigation } from './useInsertNavigation';
 import { useHideCoreInsertButton } from './hideCoreInsertButton';
 import DropUpPanel, { PanelTile } from './panel';
@@ -74,6 +77,29 @@ function SlideTemplatesPlugin({ pluginUuid }: { pluginUuid: string }): React.Rea
     setOpen(false);
   };
 
+  // A copy of the current slide, as an image (see duplicate.ts). Preparing it takes a moment, so the insert is
+  // registered first: the tiles are disabled meanwhile, and the copy goes right after the slide it was asked from.
+  const svgUrl = currentPresentation?.currentPage?.urlsJson?.svg;
+  const insertDuplicate = async () => {
+    if (!pageNum || !svgUrl || pending) return;
+    const from = pageNum;
+    navigation.begin();
+    setOpen(false);
+    try {
+      const bytes = await duplicatePagePdf(svgUrl, pluginApi.getSessionToken?.(), size.width, size.height);
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      insertPages(from + 1, { blob }, 'application/pdf', `Slide ${from} copy.pdf`);
+    } catch (error) {
+      navigation.cancel();
+      console.warn('[slide-templates] the slide could not be duplicated', error);
+      pluginApi.uiCommands.notification.send({
+        message: 'The slide could not be duplicated',
+        icon: 'warning',
+        type: NotificationTypeUiCommand.ERROR,
+      });
+    }
+  };
+
   // A file: the panel stays open while the file chooser is shown; the insert starts when a file is chosen.
   const onFileChosen = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -129,6 +155,14 @@ function SlideTemplatesPlugin({ pluginUuid }: { pluginUuid: string }): React.Rea
               >
                 <FileThumbnail width={size.width} height={size.height} />
               </PanelTile>
+              <PanelTile
+                dataTest="slideTemplate-duplicate"
+                label="Duplicate slide"
+                disabled={pending || !svgUrl}
+                onClick={insertDuplicate}
+              >
+                <DuplicateThumbnail width={size.width} height={size.height} />
+              </PanelTile>
               {TEMPLATES.map((t) => (
                 <PanelTile
                   key={t.id}
@@ -146,7 +180,7 @@ function SlideTemplatesPlugin({ pluginUuid }: { pluginUuid: string }): React.Rea
         },
       }),
     ]);
-  }, [presenter, open, pageNum, size.width, size.height, pending]);
+  }, [presenter, open, pageNum, size.width, size.height, pending, svgUrl]);
 
   // The file input lives in the plugin's own root, not in the panel, so a re-render of the panel while the
   // file chooser is open cannot drop the chosen file.

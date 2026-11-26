@@ -32,26 +32,69 @@ export function contentStream(width: number, height: number, shapes: Shape[]): s
   return `${out.join('\n')}\n`;
 }
 
+// Writes a PDF from its objects, numbered from 1 in order. A part is text (ASCII only) or raw bytes, so a
+// binary stream (a JPEG) can sit inside an object; the cross-reference table counts bytes.
+type Part = string | Uint8Array;
+
+const ascii = (text: string): Uint8Array => {
+  const bytes = new Uint8Array(text.length);
+  for (let i = 0; i < text.length; i += 1) bytes[i] = text.charCodeAt(i);
+  return bytes;
+};
+
+function writePdf(objects: Part[][]): Uint8Array {
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  const push = (part: Part) => {
+    const bytes = typeof part === 'string' ? ascii(part) : part;
+    chunks.push(bytes);
+    length += bytes.length;
+  };
+  push('%PDF-1.4\n');
+  const offsets: number[] = [];
+  objects.forEach((parts, i) => {
+    offsets.push(length);
+    push(`${i + 1} 0 obj\n`);
+    parts.forEach(push);
+    push('\nendobj\n');
+  });
+  const xref = length;
+  push(`xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`);
+  offsets.forEach((o) => push(`${`0000000000${o}`.slice(-10)} 00000 n \n`));
+  push(`trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  const out = new Uint8Array(length);
+  let at = 0;
+  chunks.forEach((c) => { out.set(c, at); at += c.length; });
+  return out;
+}
+
 export function pdfBytes(width: number, height: number, shapes: Shape[]): Uint8Array {
   const content = contentStream(width, height, shapes);
-  const objects = [
-    '<< /Type /Catalog /Pages 2 0 R >>',
-    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${n(width)} ${n(height)}] /Contents 4 0 R /Resources << >> >>`,
-    `<< /Length ${content.length} >>\nstream\n${content}endstream`,
-  ];
-  let pdf = '%PDF-1.4\n';
-  const offsets: number[] = [];
-  objects.forEach((body, i) => {
-    offsets.push(pdf.length);
-    pdf += `${i + 1} 0 obj\n${body}\nendobj\n`;
-  });
-  const xref = pdf.length;
-  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  offsets.forEach((o) => { pdf += `${`0000000000${o}`.slice(-10)} 00000 n \n`; });
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
-  // Only ASCII above, so one char is one byte.
-  const bytes = new Uint8Array(pdf.length);
-  for (let i = 0; i < pdf.length; i += 1) bytes[i] = pdf.charCodeAt(i);
-  return bytes;
+  return writePdf([
+    ['<< /Type /Catalog /Pages 2 0 R >>'],
+    ['<< /Type /Pages /Kids [3 0 R] /Count 1 >>'],
+    [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${n(width)} ${n(height)}] /Contents 4 0 R /Resources << >> >>`],
+    [`<< /Length ${content.length} >>\nstream\n${content}endstream`],
+  ]);
+}
+
+// A one-page PDF of width x height whose page is a JPEG image of imageWidth x imageHeight pixels, stretched over
+// the whole page.
+export function jpegPagePdfBytes(
+  width: number,
+  height: number,
+  jpeg: Uint8Array,
+  imageWidth: number,
+  imageHeight: number,
+): Uint8Array {
+  const content = `q ${n(width)} 0 0 ${n(height)} 0 0 cm /Im0 Do Q\n`;
+  return writePdf([
+    ['<< /Type /Catalog /Pages 2 0 R >>'],
+    ['<< /Type /Pages /Kids [3 0 R] /Count 1 >>'],
+    [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${n(width)} ${n(height)}] /Contents 4 0 R `
+      + '/Resources << /XObject << /Im0 5 0 R >> >> >>'],
+    [`<< /Length ${content.length} >>\nstream\n${content}endstream`],
+    [`<< /Type /XObject /Subtype /Image /Width ${imageWidth} /Height ${imageHeight} /ColorSpace /DeviceRGB `
+      + `/BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`, jpeg, '\nendstream'],
+  ]);
 }

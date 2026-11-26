@@ -43,6 +43,22 @@ export function FileThumbnail({ width, height }: { width: number; height: number
   );
 }
 
+// A duplicate: two pages, one over the other, centered in the frame.
+export function DuplicateThumbnail({ width, height }: { width: number; height: number }) {
+  const ih = height * 0.5;
+  const iw = ih * 0.78;
+  const d = ih * 0.16;
+  const x = (width - iw - d) / 2;
+  const y = (height - ih - d) / 2;
+  const stroke = { stroke: '#666', strokeWidth: 1.5, vectorEffect: 'non-scaling-stroke' as const };
+  return (
+    <ThumbnailFrame width={width} height={height}>
+      <rect x={x} y={y} width={iw} height={ih} fill="none" {...stroke} />
+      <rect x={x + d} y={y + d} width={iw} height={ih} fill="#fff" {...stroke} />
+    </ThumbnailFrame>
+  );
+}
+
 // The thumbnail draws the same shapes as the PDF, in page units, but with strokes and dots of a fixed
 // size on screen: at 140 px a page stroke of 0.75 pt would be about 0.07 px and the tile would look blank.
 function Thumbnail({ template, width, height }: { template: SlideTemplate; width: number; height: number }) {

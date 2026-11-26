@@ -41,7 +41,9 @@ const SET_PAGE_MUTATION = `
 export interface InsertNavigation {
   // Registers the insert about to be asked for, right after the current page. Call it before the command.
   begin: () => void;
-  // True from begin until the pages arrive, the presenter moves away, or the deadline passes.
+  // Drops the registered insert, for an insert that could not be asked for after begin.
+  cancel: () => void;
+  // True from begin until the pages arrive, the presenter moves away, the deadline passes, or cancel.
   pending: boolean;
 }
 
@@ -103,5 +105,5 @@ export function useInsertNavigation(
     if (pendingRef.current) clearTimeout(pendingRef.current.timer);
   }, []);
 
-  return { begin, pending };
+  return { begin, cancel: clear, pending };
 }
